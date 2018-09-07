@@ -34,9 +34,9 @@ Google 从Android P开始提供刘海屏适配方案，通过全新的DisplayCut
 我们可以通过修改WindowManager.LayoutParams.layoutInDisplayCutoutMode的
 状态来对APP的内容进行布局，Google提供了3种状态可选
 
-> LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
-> LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
-> LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+>LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+>LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+>LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
 
 三种状态分别表示DEFAULT只有当刘海区完全包含在状态栏时才是用，NEVER从不使
 用刘海区域（这样会显示一条黑边距），SHORT_EDGES表示允许延伸到刘海区。
