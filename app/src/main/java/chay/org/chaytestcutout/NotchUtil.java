@@ -9,8 +9,9 @@ import android.view.WindowManager;
  * Author:Chay
  * Time:2018/9/5 0005
  * <p>
- * 刘海屏适配
- * {@link https://blog.csdn.net/xiangzhihong8/article/details/80317682}
+ * 刘海屏适配工具类
+ * 建议在相关的页面上使用属性android:fitsSystemWindows="true"，
+ * 或者在style里面声明这个属性
  * </p>
  **/
 public class NotchUtil {
@@ -23,8 +24,8 @@ public class NotchUtil {
      * @param isLightMode 状态栏模式
      */
     @Deprecated
-    public static void setImmersiveNoneNotch(Context context, boolean isLightMode) {
-        setImmersiveMode(context, false, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+    public static void setImmersiveNoneNotch(Context context, boolean isLightMode,int cutoutMode) {
+        setImmersiveMode(context, false, isLightMode, cutoutMode);
     }
 
     /**
@@ -33,8 +34,8 @@ public class NotchUtil {
      * @param context     context
      * @param isLightMode 状态栏模式
      */
-    public static void setImmersiveWithNotch(Context context, boolean isLightMode) {
-        setImmersiveMode(context, true, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+    public static void setImmersiveWithNotch(Context context, boolean isLightMode,int cutoutMode) {
+        setImmersiveMode(context, true, isLightMode, cutoutMode);
     }
 
     /**
@@ -43,8 +44,8 @@ public class NotchUtil {
      * @param context     context
      * @param isLightMode 状态栏模式
      */
-    public static void setNoneImmersiveNoneNotch(Context context, boolean isLightMode) {
-        setNoneImmersiveMode(context, false, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT);
+    public static void setNoneImmersiveNoneNotch(Context context, boolean isLightMode,int cutoutMode) {
+        setNoneImmersiveMode(context, false, isLightMode, cutoutMode);
     }
 
     /**
@@ -53,8 +54,8 @@ public class NotchUtil {
      * @param context     context
      * @param isLightMode 状态栏模式
      */
-    public static void setNoneImmersiveWithNotch(Context context, boolean isLightMode) {
-        setNoneImmersiveMode(context, true, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+    public static void setNoneImmersiveWithNotch(Context context, boolean isLightMode,int cutoutMode) {
+        setNoneImmersiveMode(context, true, isLightMode, cutoutMode);
     }
 
     /**
@@ -110,6 +111,9 @@ public class NotchUtil {
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     NotchThirdUtil.setNotchModeforApi28(context, isUseCutout, isLightMode, cutoutMode);
+                }else {
+                    //不使用沉浸式状态栏，设置默认模式
+                    NotchThirdUtil.setNormalMode(app,true);
                 }
             }
         }
@@ -146,11 +150,16 @@ public class NotchUtil {
             } else if (OSUtil.isMiui()) {
                 if (NotchThirdUtil.isHideNotchScreen4Xiaomi(app)) {
                     //如果用户把刘海屏关掉，那么直接设置正常模式
-                    NotchThirdUtil.setNormalMode(app);
+                    NotchThirdUtil.setNormalMode(app,true);
                     return;
                 }
                 if (NotchThirdUtil.hasNotchInScreenAtXiaomi()) {
                     //MIUI系统处理
+                    if (isUseCutout) {
+                        NotchThirdUtil.addExtraFlag(app);
+                    } else {
+                        NotchThirdUtil.clearExtraFlag(app);
+                    }
                 }
             }
 

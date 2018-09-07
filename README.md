@@ -1,243 +1,185 @@
-# Android适配刘海屏，
+## Notch工具类
 
-#### 背景
+目前，市场上存在多种带有刘海的手机，需要对刘海区进行相应适配，而低于Android P版本的手机
+都是各厂商自行研发的，并没有统一方法，固需要对不同厂商手机进行不同的处理。
 
-自从iphoneX发布之后，带有刘海的手机的发布应接不暇，各大厂商纷纷效仿，
-目前华为，小米，OV等厂商都已经发布了自己的带有刘海的手机。并且Google
-大大在今年的IO大会上也已经推出基于Android P 适配方案，但是各大厂商在
-P之前就已经发布，我们开发者要针对这些机型最做适配，需要查阅相关厂商的
-开发文档，做好我们APP的适配工作。
+而针对刘海区的适配，在低于Android P版本上，只需要注意的是当用户手机是刘海屏手机，并且使
+用的APP为带有沉浸式状态栏的手机，才会出现重要View和相应的点击事件出现在刘海区，要避免这
+种情况，需根据系统的不同，处理方式不同。
 
-#### 个人理解
+要做到适配方案，我们需要先判断当前手机的系统版本，如果系统版本大于等于28，那么我们就采用
+系统提供的适配方案即可，如果系统版本低于28，那么我们需要判断当前系统是什么系统，是否展示
+状态栏（或者使用沉浸式状态栏），然后在根据各厂商的适配方案进行
+处理。
 
-针对手机的刘海区域，是不可操作区域，如果我们的APP（非游戏类APP和可切换
-横屏APP）实现了沉浸式状态栏效果，那么一般情况下，刘海区域会在状态栏里，
-基于我们的UI设计，一般会把重要的View放在安全区域内，固当是这种情况的时
-候，不需要考虑相关适配。如果没有实现沉浸式状态栏，并且是全屏应用，那么
-我们就要考虑我们view是否在安全区，这样就要判断手机是否是刘海屏，并且需
-要判断相应的刘海区域，然后根据区域的不同，调整我们在刘海区的控件位置。
-游戏类APP和可横屏APP的适配同上。
+[适配总结](NotchIntroduce.md)
 
-#### 安全区示意图
+NotchUtil主要针对当前竖屏模式进行简单适配，其中包括沉浸式状态栏的使用，状态栏深浅色的状态
+的修改，刘海区的适配做相关处理。
 
-![安全区示意图](res/securityarea.png "示意图")
+PS：
+1.在使用NotchUtil的时候，在页面的xml根布局设置android:fitsSystemWindows="true"属性，或者全局
+设置style设置相关属性。
+2.如果App位置相关android:fitsSystemWindows="true"属性，开发人员在使用NotUtil的时候，需要在
+后续的操作中，要针对危险区进行处理。
+3.如果需要在页面动态修改状态栏的使用，需要添加
+getWindowManager()
+.updateViewLayout(getWindow().getDecorView(),getWindow().getDecorView().getLayoutParams());
+刷新页面。
+4.对于一些特殊情况，需要单独适配处理，获取相关状态栏高度和刘海区信息，对相关view进行位置偏移
+操作等。
 
-### 各个厂商适配方案
+NotchUtil代码如下：
 
-#### google Android P 适配方案
-[Google官网传送门](https://developer.android.com/preview/features#cutout)
-
-Google 从Android P开始提供刘海屏适配方案，通过全新的DisplayCutout类，
-可以确定非功能区的位置和形状，这个区域即为刘海区，刘海区不应该显示内容，
-通过getDisplayCutout()确定当前手机是否包含刘海区。
-
-我们可以通过修改WindowManager.LayoutParams.layoutInDisplayCutoutMode的
-状态来对APP的内容进行布局，Google提供了3种状态可选
-
->LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
->LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
->LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-
-三种状态分别表示DEFAULT只有当刘海区完全包含在状态栏时才是用，NEVER从不使
-用刘海区域（这样会显示一条黑边距），SHORT_EDGES表示允许延伸到刘海区。
-
-设置使用刘海区代码:
 ````
-    getSupportActionBar().hide();
-    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
-     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); 
-    //设置页面全屏显示
-    WindowManager.LayoutParams lp = getWindow().getAttributes();
-    lp.layoutInDisplayCutoutMode = WindowManager
-    .LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES; 
-    //设置页面延伸到刘海区显示
-    getWindow().setAttributes(lp);
-````
+public class NotchUtil {
 
-PS:如果应用的布局需要延伸到刘海区显示，那么需要设置View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-同时，如果需要修改状态栏的显示颜色，则需要这是View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+    /**
+     * 设置有沉浸式状态栏无刘海区
+     * PS:此效果和有刘海区效果一样
+     *
+     * @param context     context
+     * @param isLightMode 状态栏模式
+     */
+    @Deprecated
+    public static void setImmersiveNoneNotch(Context context, boolean isLightMode) {
+        setImmersiveMode(context, false, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+    }
 
-获取刘海安全显示区大小和刘海尺寸信息代码：
-````
-    contentView = getWindow().getDecorView().findViewById(android.R.id.content).getRootView();
-    contentView.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
-        @Override
-        public WindowInsets onApplyWindowInsets(View view, WindowInsets windowInsets) {
-            DisplayCutout cutout = windowInsets.getDisplayCutout();
-            if (cutout == null) {
-                //通过cutout是否为null判断是否刘海屏手机
-                Log.e(TAG, "cutout==null, is not notch screen");
-            } else {
-                List<Rect> rects = cutout.getBoundingRects();
-                if (rects == null || rects.size() == 0) {
-                    Log.e(TAG, "rects==null || rects.size()==0, is not notch screen");
+    /**
+     * 设置有沉浸式状态栏有刘海区
+     *
+     * @param context     context
+     * @param isLightMode 状态栏模式
+     */
+    public static void setImmersiveWithNotch(Context context, boolean isLightMode) {
+        setImmersiveMode(context, true, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+    }
+
+    /**
+     * 设置没有沉浸式状态栏无刘海区
+     *
+     * @param context     context
+     * @param isLightMode 状态栏模式
+     */
+    public static void setNoneImmersiveNoneNotch(Context context, boolean isLightMode) {
+        setNoneImmersiveMode(context, false, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT);
+    }
+
+    /**
+     * 设置没有沉浸式状态栏有刘海区
+     *
+     * @param context     context
+     * @param isLightMode 状态栏模式
+     */
+    public static void setNoneImmersiveWithNotch(Context context, boolean isLightMode) {
+        setNoneImmersiveMode(context, true, isLightMode, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+    }
+
+    /**
+     * 设置沉浸式状态栏情况，设置刘海策略
+     *
+     * @param context     context
+     * @param isUseCutout 是否使用刘海区
+     * @param isLightMode 状态栏颜色状态
+     * @param cutout      刘海使用策略
+     */
+    public static void setImmersiveMode(Context context, boolean isUseCutout, boolean isLightMode, int cutout) {
+        setImmersiveBarsMode(context, true, isUseCutout, isLightMode, cutout);
+    }
+
+    /**
+     * 不支持沉浸式状态栏情况，设置刘海策略
+     *
+     * @param context     context
+     * @param isUseCutout 是否使用刘海区
+     * @param isLightMode 状态栏颜色状态
+     * @param cutout      刘海使用策略
+     */
+    public static void setNoneImmersiveMode(Context context, boolean isUseCutout, boolean isLightMode, int cutout) {
+        setImmersiveBarsMode(context, false, isUseCutout, isLightMode, cutout);
+    }
+
+    /**
+     * 设置沉浸式状态栏
+     * PS:在Android P之前，只有设置为沉浸式状态栏，才会延伸到刘海区，否则
+     * 设置getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+     * 是不会延伸到刘海区的
+     * PS:针对不同需求，调整相关策略，主要策略为系统适应，如果需要特殊处理的一些需求，根据根据状态栏高度调整
+     *
+     * @param context            context
+     * @param isUseImmersiveBars 是否使用沉浸式状态栏
+     * @param isUseCutout        是否支持刘海屏
+     * @param isLightMode        是否是浅色模式，如果为真，则修改状态栏字体颜色为深色
+     * @param cutoutMode         Android P刘海区使用策略，-1为默认处理
+     */
+    private static void setImmersiveBarsMode(Context context, boolean isUseImmersiveBars,
+                                             boolean isUseCutout, boolean isLightMode, int cutoutMode) {
+        if (context instanceof AppCompatActivity) {
+            AppCompatActivity app = (AppCompatActivity) context;
+            if (isUseImmersiveBars) {
+                app.getSupportActionBar().hide();
+                StatusBarUtil.transparencyBar(app);
+                if (isLightMode) {
+                    StatusBarUtil.StatusBarLightMode(app);
                 } else {
-                    Log.e(TAG, "rect size:" + rects.size());//注意：刘海的数量可以是多个
-                    for (Rect rect : rects) {
-                        Log.e(TAG, "cutout.getSafeInsetTop():" + cutout.getSafeInsetTop()
-                                + ", cutout.getSafeInsetBottom():" + cutout.getSafeInsetBottom()
-                                + ", cutout.getSafeInsetLeft():" + cutout.getSafeInsetLeft()
-                                + ", cutout.getSafeInsetRight():" + cutout.getSafeInsetRight()
-                                + ", cutout.rects:" + rect
-                        );
+                    StatusBarUtil.StatusBarDarkMode(app);
+                }
+                setNotchMode(app, isUseCutout, isLightMode, cutoutMode);
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    NotchThirdUtil.setNotchModeforApi28(context, isUseCutout, isLightMode, cutoutMode);
+                }
+            }
+        }
+    }
+
+    /**
+     * 设置刘海策略
+     *
+     * @param app         app
+     * @param isUseCutout 是否使用刘海区域
+     * @param isLightMode 是否显示浅模式
+     * @param cutoutMode  刘海屏显示策略
+     */
+    private static void setNotchMode(AppCompatActivity app, boolean isUseCutout, boolean isLightMode, int cutoutMode) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            NotchThirdUtil.setNotchModeforApi28(app, isUseCutout, isLightMode, cutoutMode);
+        } else {
+            if (OSUtil.isEmui()) {
+                if (NotchThirdUtil.hasNotchInScreenAtHuawei(app)) {
+                    if (isUseCutout) {
+                        NotchThirdUtil.setFullScreenWindowLayoutInDisplayCutout(app.getWindow());
+                    } else {
+                        NotchThirdUtil.setNotFullScreenWindowLayoutInDisplayCutout(app.getWindow());
+                    }
+                }
+            } else if (OSUtil.isOppo()) {
+                if (NotchThirdUtil.hasNotchInScreenAtOppo(app)) {
+                    //OPPO系统默认处理
+                }
+            } else if (OSUtil.isVivo()) {
+                if (NotchThirdUtil.hasNotchInScreenAtVoio(app)) {
+                    //VIVO系统默认处理
+                }
+            } else if (OSUtil.isMiui()) {
+                if (NotchThirdUtil.isHideNotchScreen4Xiaomi(app)) {
+                    //如果用户把刘海屏关掉，那么直接设置正常模式
+                    NotchThirdUtil.setNormalMode(app);
+                    return;
+                }
+                if (NotchThirdUtil.hasNotchInScreenAtXiaomi()) {
+                    //MIUI系统处理
+                    if (isUseCutout) {
+                        NotchThirdUtil.addExtraFlag(app);
+                    } else {
+                        NotchThirdUtil.clearExtraFlag(app);
                     }
                 }
             }
-            return windowInsets;
+
         }
-    });
-````
-
-PS：
-1. 通过使用windowInsets.getDisplayCutout()是否为null判断是否刘海屏手机，如果为null为非刘海屏；
-2. 如果是刘海屏手机，可以通过接口获取相关的刘海信息；
-3. 刘海的个数可以有多个。
-
-#### 华为适配方案
-
-[华为官网传送门](https://devcenter-test.huawei.com/consumer/cn/devservice/doc/50114)
-
-华为提供了一套Android O上的刘海适配过程图，从而方便了Android开发人员的
-适配工作量，开发人员不必过多的去处理适配工作，华为EMUI会自动适配处理。
-
-![华为适配流程图](res/notchdes.png "华为处理逻辑")
-
-从上述华为处理逻辑图可以看出，华为会先判断手机是否为刘海屏手机，然后会继续判断横竖屏显示，
-其次判断是否显示状态栏，如果符合条件，那么华为会对app的页面布局进行下移处理。
-
-华为提供了相应的代码方法来判断当前手机是否有刘海屏和刘海屏大小的方法。
-
-代码如下：
-````
-    /**
-     * 华为手机是否有刘海屏
-     *
-     * @param context context
-     * @return 是否有刘海屏
-     */
-    public static boolean hasNotchInScreen(Context context) {
-        boolean ret = false;
-        try {
-            ClassLoader cl = context.getClassLoader();
-            Class HwNotchSizeUtil = cl.loadClass("com.huawei.android.util.HwNotchSizeUtil")
-            Method get = HwNotchSizeUtil.getMethod("hasNotchInScreen");
-            ret = (boolean) get.invoke(HwNotchSizeUtil);
-        } catch (ClassNotFoundException e) {
-            Log.e("test", "hasNotchInScreen ClassNotFoundException");
-        } catch (NoSuchMethodException e) {
-            Log.e("test", "hasNotchInScreen NoSuchMethodException");
-        } catch (Exception e) {
-            Log.e("test", "hasNotchInScreen Exception");
-        } finally {
-            return ret;
-        }
-
-    /**
-     * 获取华为刘海屏的刘海尺寸
-     *
-     * @param context context
-     * @return 刘海尺寸
-     */
-    public static int[] getNotchSize4Huawei(Context context) {
-        int[] ret = new int[]{0, 0};
-        try {
-            ClassLoader cl = context.getClassLoader();
-            Class HwNotchSizeUtil = cl.loadClass("com.huawei.android.util.HwNotchSizeUtil");
-            Method get = HwNotchSizeUtil.getMethod("getNotchSize");
-            ret = (int[]) get.invoke(HwNotchSizeUtil);
-        } catch (ClassNotFoundException e) {
-            Log.e(TAG, "getNotchSize ClassNotFoundException");
-        } catch (NoSuchMethodException e) {
-            Log.e(TAG, "getNotchSize NoSuchMethodException");
-        } catch (Exception e) {
-            Log.e(TAG, "getNotchSize Exception");
-        }
-        return ret;
     }
+
 }
 ````
-
-根据相应代码，我们可以依此判断是否刘海屏和刘海区域大小，进行相关UI调整和适配。
-
-并且，华为提供了2种适配方案：
-
-方案一：
-
-使用新增的Meta-data属性android.notch_support，在应用的AndroidManifest.xml中增加meta-data属性，
-此属性不仅可以针对Application生效，也可以对Activity配置生效。
-
-``<meta-data android:name="android.notch_support" android:value="true"/>``
-
-PS：
-1. 如果针对Application生效，意味着该应用的所有页面，系统都不会做竖屏场景的特殊下移或者横屏场景
-特殊右移
-2. 如果针对Activity生效，意味着可以针对单个页面进行刘海屏适配，设置该属性，仅针对当前的Ativity
-不做相关处理
-
-方案二：
-
-使用给window添加新增的FLAG_NOTCH_SUPPORT，应用通过增加华为自定义的刘海屏flag，来请求使用或者去除使用
-刘海区显示，
-
-代码如下：
-````
-    /*刘海屏全屏显示FLAG*/
-    private static final int FLAG_NOTCH_SUPPORT = 0x00010000;
-
-    /**
-     * 设置应用窗口在华为刘海屏手机使用刘海区
-     *
-     * @param window 应用页面window对象
-     */
-    public static void setFullScreenWindowLayoutInDisplayCutout(Window window) {
-        if (window == null) {
-            return;
-        }
-        WindowManager.LayoutParams layoutParams = window.getAttributes();
-        try {
-            Class layoutParamsExCls = Class.forName("com.huawei.android.view.LayoutParamsEx");
-            Constructor con = layoutParamsExCls.getConstructor(WindowManager.LayoutParams.class);
-            Object layoutParamsExObj = con.newInstance(layoutParams);
-            Method method = layoutParamsExCls.getMethod("addHwFlags", int.class);
-            method.invoke(layoutParamsExObj, FLAG_NOTCH_SUPPORT);
-        } catch (Exception e) {
-            Log.e(TAG, "other Exception");
-        }
-    }
-
-    /**
-     * 设置应用窗口在华为刘海屏手机使用刘海区
-     *
-     * @param window 应用页面window对象
-     */
-    public static void setNotFullScreenWindowLayoutInDisplayCutout(Window window) {
-        if (window == null) {
-            return;
-        }
-        WindowManager.LayoutParams layoutParams = window.getAttributes();
-        try {
-            Class layoutParamsExCls = Class.forName("com.huawei.android.view.LayoutParamsEx");
-            Constructor con = layoutParamsExCls.getConstructor(WindowManager.LayoutParams.class);
-            Object layoutParamsExObj = con.newInstance(layoutParams);
-            Method method = layoutParamsExCls.getMethod("clearHwFlags", int.class);
-            method.invoke(layoutParamsExObj, FLAG_NOTCH_SUPPORT);
-        } catch (Exception e) {
-            Log.e(TAG, "other Exception");
-        }
-    }
-````
-
-PS:对Application生效，意味着该应用的所有页面，系统都不会做竖屏场景的特殊下移或者是
-横屏场景的右移特殊处理
-PS:在代码里使用，需要在调用后添加
-getWindowManager()
-.updateViewLayout(getWindow().getDecorView(),getWindow().getDecorView().getLayoutParams());
-否则，不会刷新页面生效。
-
-#### 小米适配方案
-
-[小米适配传送门](https://dev.mi.com/console/doc/detail?pId=1293)
-
-
-
-

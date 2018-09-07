@@ -28,6 +28,44 @@ public class NotchThirdUtil {
     private static final String TAG = "NotchThirdUtil";
 
     /**
+     * 小米删除刘海区域
+     *
+     * @param context context
+     */
+    public static void clearExtraFlag(Context context) {
+        int flag = 0x00000100 | 0x00000200 | 0x00000400;
+        if (context instanceof AppCompatActivity) {
+            AppCompatActivity app = (AppCompatActivity) context;
+            try {
+                Method method = Window.class.getMethod("clearExtraFlags",
+                        int.class);
+                method.invoke(app.getWindow(), flag);
+            } catch (Exception e) {
+                Log.i(TAG, "addExtraFlags not found.");
+            }
+        }
+    }
+
+    /**
+     * 小米添加刘海区域
+     *
+     * @param context context
+     */
+    public static void addExtraFlag(Context context) {
+        int flag = 0x00000100 | 0x00000200 | 0x00000400;
+        if (context instanceof AppCompatActivity) {
+            AppCompatActivity app = (AppCompatActivity) context;
+            try {
+                Method method = Window.class.getMethod("addExtraFlags",
+                        int.class);
+                method.invoke(app.getWindow(), flag);
+            } catch (Exception e) {
+                Log.i(TAG, "addExtraFlags not found.");
+            }
+        }
+    }
+
+    /**
      * 判断用户是否开启了隐藏刘海区域
      *
      * @param context
@@ -209,13 +247,13 @@ public class NotchThirdUtil {
     /**
      * 设置正常模式
      *
-     * @param context    context
+     * @param context context
      */
-    public static void setNormalMode(Context context) {
+    public static void setNormalMode(Context context, boolean isShowActionBar) {
         if (context instanceof AppCompatActivity) {
             AppCompatActivity app = (AppCompatActivity) context;
             app.getSupportActionBar().hide();
-            app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+            app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
     }
 
