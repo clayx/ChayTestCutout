@@ -48,7 +48,8 @@ Google 从Android P开始提供刘海屏适配方案，通过全新的DisplayCut
      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); 
     //设置页面全屏显示
     WindowManager.LayoutParams lp = getWindow().getAttributes();
-    lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES; 
+    lp.layoutInDisplayCutoutMode = WindowManager
+    .LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES; 
     //设置页面延伸到刘海区显示
     getWindow().setAttributes(lp);
 ````
@@ -64,7 +65,8 @@ PS:如果应用的布局需要延伸到刘海区显示，那么需要设置View.
         public WindowInsets onApplyWindowInsets(View view, WindowInsets windowInsets) {
             DisplayCutout cutout = windowInsets.getDisplayCutout();
             if (cutout == null) {
-                Log.e(TAG, "cutout==null, is not notch screen");//通过cutout是否为null判断是否刘海屏手机
+                //通过cutout是否为null判断是否刘海屏手机
+                Log.e(TAG, "cutout==null, is not notch screen");
             } else {
                 List<Rect> rects = cutout.getBoundingRects();
                 if (rects == null || rects.size() == 0) {
@@ -95,9 +97,146 @@ PS：
 
 [华为官网传送门](https://devcenter-test.huawei.com/consumer/cn/devservice/doc/50114)
 
+华为提供了一套Android O上的刘海适配过程图，从而方便了Android开发人员的
+适配工作量，开发人员不必过多的去处理适配工作，华为EMUI会自动适配处理。
 
+![华为适配流程图](res/notchdes.png "华为处理逻辑")
 
+从上述华为处理逻辑图可以看出，华为会先判断手机是否为刘海屏手机，然后会继续判断横竖屏显示，
+其次判断是否显示状态栏，如果符合条件，那么华为会对app的页面布局进行下移处理。
 
+华为提供了相应的代码方法来判断当前手机是否有刘海屏和刘海屏大小的方法。
+
+代码如下：
+````
+    /**
+     * 华为手机是否有刘海屏
+     *
+     * @param context context
+     * @return 是否有刘海屏
+     */
+    public static boolean hasNotchInScreen(Context context) {
+        boolean ret = false;
+        try {
+            ClassLoader cl = context.getClassLoader();
+            Class HwNotchSizeUtil = cl.loadClass("com.huawei.android.util.HwNotchSizeUtil")
+            Method get = HwNotchSizeUtil.getMethod("hasNotchInScreen");
+            ret = (boolean) get.invoke(HwNotchSizeUtil);
+        } catch (ClassNotFoundException e) {
+            Log.e("test", "hasNotchInScreen ClassNotFoundException");
+        } catch (NoSuchMethodException e) {
+            Log.e("test", "hasNotchInScreen NoSuchMethodException");
+        } catch (Exception e) {
+            Log.e("test", "hasNotchInScreen Exception");
+        } finally {
+            return ret;
+        }
+
+    /**
+     * 获取华为刘海屏的刘海尺寸
+     *
+     * @param context context
+     * @return 刘海尺寸
+     */
+    public static int[] getNotchSize4Huawei(Context context) {
+        int[] ret = new int[]{0, 0};
+        try {
+            ClassLoader cl = context.getClassLoader();
+            Class HwNotchSizeUtil = cl.loadClass("com.huawei.android.util.HwNotchSizeUtil");
+            Method get = HwNotchSizeUtil.getMethod("getNotchSize");
+            ret = (int[]) get.invoke(HwNotchSizeUtil);
+        } catch (ClassNotFoundException e) {
+            Log.e(TAG, "getNotchSize ClassNotFoundException");
+        } catch (NoSuchMethodException e) {
+            Log.e(TAG, "getNotchSize NoSuchMethodException");
+        } catch (Exception e) {
+            Log.e(TAG, "getNotchSize Exception");
+        }
+        return ret;
+    }
+}
+````
+
+根据相应代码，我们可以依此判断是否刘海屏和刘海区域大小，进行相关UI调整和适配。
+
+并且，华为提供了2种适配方案：
+
+方案一：
+
+使用新增的Meta-data属性android.notch_support，在应用的AndroidManifest.xml中增加meta-data属性，
+此属性不仅可以针对Application生效，也可以对Activity配置生效。
+
+``<meta-data android:name="android.notch_support" android:value="true"/>``
+
+PS：
+1. 如果针对Application生效，意味着该应用的所有页面，系统都不会做竖屏场景的特殊下移或者横屏场景
+特殊右移
+2. 如果针对Activity生效，意味着可以针对单个页面进行刘海屏适配，设置该属性，仅针对当前的Ativity
+不做相关处理
+
+方案二：
+
+使用给window添加新增的FLAG_NOTCH_SUPPORT，应用通过增加华为自定义的刘海屏flag，来请求使用或者去除使用
+刘海区显示，
+
+代码如下：
+````
+    /*刘海屏全屏显示FLAG*/
+    private static final int FLAG_NOTCH_SUPPORT = 0x00010000;
+
+    /**
+     * 设置应用窗口在华为刘海屏手机使用刘海区
+     *
+     * @param window 应用页面window对象
+     */
+    public static void setFullScreenWindowLayoutInDisplayCutout(Window window) {
+        if (window == null) {
+            return;
+        }
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        try {
+            Class layoutParamsExCls = Class.forName("com.huawei.android.view.LayoutParamsEx");
+            Constructor con = layoutParamsExCls.getConstructor(WindowManager.LayoutParams.class);
+            Object layoutParamsExObj = con.newInstance(layoutParams);
+            Method method = layoutParamsExCls.getMethod("addHwFlags", int.class);
+            method.invoke(layoutParamsExObj, FLAG_NOTCH_SUPPORT);
+        } catch (Exception e) {
+            Log.e(TAG, "other Exception");
+        }
+    }
+
+    /**
+     * 设置应用窗口在华为刘海屏手机使用刘海区
+     *
+     * @param window 应用页面window对象
+     */
+    public static void setNotFullScreenWindowLayoutInDisplayCutout(Window window) {
+        if (window == null) {
+            return;
+        }
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        try {
+            Class layoutParamsExCls = Class.forName("com.huawei.android.view.LayoutParamsEx");
+            Constructor con = layoutParamsExCls.getConstructor(WindowManager.LayoutParams.class);
+            Object layoutParamsExObj = con.newInstance(layoutParams);
+            Method method = layoutParamsExCls.getMethod("clearHwFlags", int.class);
+            method.invoke(layoutParamsExObj, FLAG_NOTCH_SUPPORT);
+        } catch (Exception e) {
+            Log.e(TAG, "other Exception");
+        }
+    }
+````
+
+PS:对Application生效，意味着该应用的所有页面，系统都不会做竖屏场景的特殊下移或者是
+横屏场景的右移特殊处理
+PS:在代码里使用，需要在调用后添加
+getWindowManager()
+.updateViewLayout(getWindow().getDecorView(),getWindow().getDecorView().getLayoutParams());
+否则，不会刷新页面生效。
+
+#### 小米适配方案
+
+[小米适配传送门](https://dev.mi.com/console/doc/detail?pId=1293)
 
 
 
