@@ -233,7 +233,7 @@ public class NotchThirdUtil {
             //LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
             // 只有当DisplayCutout完全包含在系统状态栏中时，才允许窗口延伸到DisplayCutout区域显示。
             //LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
-            //该窗口决不允许与DisplayCutout区域重叠。
+            //该窗口决不允许与DisplayCutout区域重叠,但是会把状态栏变成黑色，效果很差，建议这种情况使用DEFAULT。
             //LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             //该窗口始终允许延伸到屏幕短边上的DisplayCutout区域。
             //PS:如果需要应用的布局延伸到刘海区显示，需要设置SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN。
