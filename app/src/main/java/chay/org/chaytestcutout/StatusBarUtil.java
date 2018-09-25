@@ -42,6 +42,28 @@ public class StatusBarUtil {
     }
 
     /**
+     * 回复状态栏
+     * PS：如果一开始有沉浸式状态栏，然后再恢复初始化，那么状态栏会变成黑色背景
+     * 如用到此方法，可以做延迟操作改变自己想要的状态栏颜色。
+     *
+     * @param activity
+     */
+    @TargetApi(19)
+    public static void restoreBar(Activity activity, int color) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = activity.getWindow();
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.getDecorView().setSystemUiVisibility(0);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Window window = activity.getWindow();
+            window.setFlags(0,
+                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        }
+        setStatusBarColor(activity, color);
+    }
+
+    /**
      * 获取状态栏高度
      *
      * @param activity
@@ -84,8 +106,8 @@ public class StatusBarUtil {
      * @param activity
      * @return 1:MIUUI 2:Flyme 3:android6.0
      */
-    public static int StatusBarLightMode(Activity activity) {
-        return StatusBarLightMode(activity.getWindow());
+    public static int statusBarLightMode(Activity activity) {
+        return statusBarLightMode(activity.getWindow());
     }
 
     /**
@@ -94,7 +116,7 @@ public class StatusBarUtil {
      *
      * @return 1:MIUUI 2:Flyme 3:android6.0
      */
-    public static int StatusBarLightMode(Window window) {
+    public static int statusBarLightMode(Window window) {
         int result = 0;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             if (MIUISetStatusBarLightMode(window, true)) {
@@ -108,6 +130,7 @@ public class StatusBarUtil {
         }
         return result;
     }
+
     /**
      * 状态栏亮色模式，设置状态栏黑色文字、图标，
      * 适配4.4以上版本MIUIV、Flyme和6.0以上版本其他Android
@@ -137,7 +160,7 @@ public class StatusBarUtil {
      * @param activity
      * @return 1:MIUUI 2:Flyme 3:android6.0
      */
-    public static int StatusBarDarkMode(Activity activity) {
+    public static int statusBarDarkMode(Activity activity) {
         int result = 0;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             if (MIUISetStatusBarLightMode(activity.getWindow(), false)) {

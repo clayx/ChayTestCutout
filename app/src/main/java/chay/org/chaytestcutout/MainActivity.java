@@ -1,7 +1,6 @@
 package chay.org.chaytestcutout;
 
 import android.os.Bundle;
-import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.WindowManager;
@@ -14,6 +13,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+//        NotchUtil.setNoneImmersiveNoneNotch(this, false, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
         setContentView(R.layout.activity_main);
         btn_change = findViewById(R.id.btn_change);
         btn_change.setOnClickListener(this);
@@ -26,15 +26,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_change:
-//                NotchUtil.setNoneImmersiveWithNotch(this, true, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
-                NotchUtil.setImmersiveWithNotch(this,true,WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
+                NotchUtil.setImmersiveWithNotch(this, false, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
                 setBtnAdapter(true);
+                //刷新页面会使Activity重走onCreate()方法
                 getWindowManager()
                         .updateViewLayout(getWindow().getDecorView(), getWindow().getDecorView().getLayoutParams());
                 break;
             case R.id.btn_change2:
                 NotchUtil.setNoneImmersiveNoneNotch(this, true, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER);
-//                setBtnAdapter(false);
+                setBtnAdapter(false);
                 getWindowManager()
                         .updateViewLayout(getWindow().getDecorView(), getWindow().getDecorView().getLayoutParams());
                 break;
@@ -43,22 +43,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public void setBtnAdapter(boolean isAdapter) {
         if (isAdapter) {
-            int statusHeight = StatusBarUtil.getStatusBarHeight(this);
-            ConstraintLayout.LayoutParams btn1Lp = (ConstraintLayout.LayoutParams) btn_change.getLayoutParams();
-            btn1Lp.topMargin = statusHeight;
-            btn_change.setLayoutParams(btn1Lp);
-
-            ConstraintLayout.LayoutParams btn2Lp = (ConstraintLayout.LayoutParams) btn_change2.getLayoutParams();
-            btn2Lp.topMargin = statusHeight;
-            btn_change2.setLayoutParams(btn2Lp);
+            NotchUtil.adaptStartusHeight(this, btn_change, 0, true);
+            NotchUtil.adaptStartusHeight(this, btn_change2, 0, true);
         } else {
-            ConstraintLayout.LayoutParams btn1Lp = (ConstraintLayout.LayoutParams) btn_change.getLayoutParams();
-            btn1Lp.topMargin = 0;
-            btn_change.setLayoutParams(btn1Lp);
-
-            ConstraintLayout.LayoutParams btn2Lp = (ConstraintLayout.LayoutParams) btn_change2.getLayoutParams();
-            btn2Lp.topMargin = 0;
-            btn_change2.setLayoutParams(btn2Lp);
+            NotchUtil.restoreMarginHeight(this, btn_change, 0, true);
+            NotchUtil.restoreMarginHeight(this, btn_change2, 0, true);
         }
     }
 }

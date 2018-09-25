@@ -2,8 +2,8 @@ package chay.org.chaytestcutout;
 
 import android.content.Context;
 import android.graphics.Rect;
-import android.os.SystemProperties;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -16,6 +16,9 @@ import android.view.WindowManager;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.List;
+
+import chay.org.chaytestcutout.i.OnCutoutDetailListener;
+import chay.org.chaytestcutout.i.OnCutoutListener;
 
 /**
  * Author:Chay
@@ -252,8 +255,10 @@ public class NotchThirdUtil {
     public static void setNormalMode(Context context, boolean isShowActionBar) {
         if (context instanceof AppCompatActivity) {
             AppCompatActivity app = (AppCompatActivity) context;
-            app.getSupportActionBar().hide();
-            app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            if (app.getSupportActionBar() != null) {
+                app.getSupportActionBar().hide();
+            }
+            app.getWindow().getDecorView().setSystemUiVisibility(0);
         }
     }
 
@@ -264,10 +269,12 @@ public class NotchThirdUtil {
      * @param isUseCutout 是否使用刘海
      * @param cutoutMode  刘海适配方式，如果不适配，则传-1，使用默认策略
      */
-    public static void setNotchModeforApi28(Context context, boolean isUseCutout, boolean isLightMode, int cutoutMode) {
+    public static void setNotchModeforApi28(Context context, boolean isUseImmersiveBars, boolean isUseCutout, boolean isLightMode, int cutoutMode) {
         if (context instanceof AppCompatActivity) {
             AppCompatActivity app = (AppCompatActivity) context;
-            app.getSupportActionBar().hide();
+            if (app.getSupportActionBar() != null) {
+                app.getSupportActionBar().hide();
+            }
             //LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
             // 只有当DisplayCutout完全包含在系统状态栏中时，才允许窗口延伸到DisplayCutout区域显示。
             //LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
@@ -275,13 +282,13 @@ public class NotchThirdUtil {
             //LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             //该窗口始终允许延伸到屏幕短边上的DisplayCutout区域。
             //PS:如果需要应用的布局延伸到刘海区显示，需要设置SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN。
-            if (isUseCutout) {
-                app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); //设置页面全屏显示
+            if (isUseImmersiveBars) {
+                app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); //设置页面全屏显示
             } else {
-                if (isLightMode) {
-                    app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+                if (isUseCutout) {
+                    app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); //设置页面全屏显示
                 } else {
-                    app.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                    app.getWindow().getDecorView().setSystemUiVisibility(0);
                 }
             }
             if (cutoutMode == -1) {
@@ -296,11 +303,12 @@ public class NotchThirdUtil {
 
     /**
      * 获取刘海高度等信息
+     * PS:只有在切换的时候才会获取到
      *
      * @param context context
      */
     @RequiresApi(api = 28)
-    public static void getNotchSize4Google(Context context) {
+    public static void getNotchSize4Google(Context context, @Nullable final OnCutoutListener listener) {
         if (context instanceof AppCompatActivity) {
             AppCompatActivity app = (AppCompatActivity) context;
             View contentView = app.getWindow().getDecorView().findViewById(android.R.id.content).getRootView();
@@ -309,20 +317,35 @@ public class NotchThirdUtil {
                 public WindowInsets onApplyWindowInsets(View view, WindowInsets windowInsets) {
                     DisplayCutout cutout = windowInsets.getDisplayCutout();
                     if (cutout == null) {
-                        Log.e(TAG, "cutout==null, is not notch screen");//通过cutout是否为null判断是否刘海屏手机
+                        if (listener != null) {
+                            listener.isHasCutout(false);
+                        }
+                        if (BuildConfig.DEBUG) {
+                            Log.e(TAG, "cutout==null, is not notch screen");//通过cutout是否为null判断是否刘海屏手机
+                        }
                     } else {
                         List<Rect> rects = cutout.getBoundingRects();
                         if (rects == null || rects.size() == 0) {
-                            Log.e(TAG, "rects==null || rects.size()==0, is not notch screen");
+                            listener.isHasCutout(false);
+                            if (BuildConfig.DEBUG) {
+                                Log.e(TAG, "rects==null || rects.size()==0, is not notch screen");
+                            }
                         } else {
-                            Log.e(TAG, "rect size:" + rects.size());//注意：刘海的数量可以是多个
-                            for (Rect rect : rects) {
-                                Log.e(TAG, "cutout.getSafeInsetTop():" + cutout.getSafeInsetTop()
-                                        + ", cutout.getSafeInsetBottom():" + cutout.getSafeInsetBottom()
-                                        + ", cutout.getSafeInsetLeft():" + cutout.getSafeInsetLeft()
-                                        + ", cutout.getSafeInsetRight():" + cutout.getSafeInsetRight()
-                                        + ", cutout.rects:" + rect
-                                );
+                            listener.isHasCutout(true);
+                            //如需用到cutout信息，则使用
+                            if (listener instanceof OnCutoutDetailListener) {
+                                ((OnCutoutDetailListener) listener).onCutout(cutout);
+                            }
+                            if (BuildConfig.DEBUG) {
+                                Log.e(TAG, "rect size:" + rects.size());//注意：刘海的数量可以是多个
+                                for (Rect rect : rects) {
+                                    Log.e(TAG, "cutout.getSafeInsetTop():" + cutout.getSafeInsetTop()
+                                            + ", cutout.getSafeInsetBottom():" + cutout.getSafeInsetBottom()
+                                            + ", cutout.getSafeInsetLeft():" + cutout.getSafeInsetLeft()
+                                            + ", cutout.getSafeInsetRight():" + cutout.getSafeInsetRight()
+                                            + ", cutout.rects:" + rect
+                                    );
+                                }
                             }
                         }
                     }
