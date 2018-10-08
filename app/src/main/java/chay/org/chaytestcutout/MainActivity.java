@@ -6,6 +6,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 
+import chay.org.chaytestcutout.i.OnCutoutListener;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Button btn_change, btn_change2;
@@ -20,6 +22,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn_change2 = findViewById(R.id.btn_change2);
         btn_change2.setOnClickListener(this);
+
+        NotchUtil.isHasCutout(this, new OnCutoutListener() {
+            @Override
+            public void isHasCutout(boolean isHas) {
+
+            }
+        });
     }
 
     @Override

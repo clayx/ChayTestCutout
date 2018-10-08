@@ -302,8 +302,7 @@ public class NotchThirdUtil {
     }
 
     /**
-     * 获取刘海高度等信息
-     * PS:只有在切换的时候才会获取到
+     * 获取刘海高度等信息(异步获取)
      *
      * @param context context
      */
@@ -311,11 +310,12 @@ public class NotchThirdUtil {
     public static void getNotchSize4Google(Context context, @Nullable final OnCutoutListener listener) {
         if (context instanceof AppCompatActivity) {
             AppCompatActivity app = (AppCompatActivity) context;
-            View contentView = app.getWindow().getDecorView().findViewById(android.R.id.content).getRootView();
+            final View contentView = app.getWindow().getDecorView().findViewById(android.R.id.content).getRootView();
             contentView.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
                 @Override
                 public WindowInsets onApplyWindowInsets(View view, WindowInsets windowInsets) {
-                    DisplayCutout cutout = windowInsets.getDisplayCutout();
+                    WindowInsets rootViewWindowInsets = contentView.getRootWindowInsets();
+                    DisplayCutout cutout = rootViewWindowInsets.getDisplayCutout();
                     if (cutout == null) {
                         if (listener != null) {
                             listener.isHasCutout(false);
